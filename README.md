@@ -119,3 +119,56 @@ Il n'y a pas d'ajout à la première étape, ni en cas de doublon ou de dictionn
 car les phrases découpent exactement le texte.
 
 **Conclusion** : à la fin de la compression, le trie a au plus **n + 257 nœuds**, racine comprise.
+
+Je vérifie d'abord numériquement le comportement sur aⁿ pour toutes les valeurs de n, pas seulement 20, avant de rédiger la partie (c).
+
+Voici la question 4, au même niveau de détail que la question 3.
+
+
+### Question 4
+
+#### (a)
+**|Mⱼ| ≤ Lⱼ₋₁.** À l'étape j, la phrase Mⱼ est cherchée dans le dictionnaire **avant** l'ajout de l'étape j, c'est-à-dire dans le dictionnaire à l'issue de l'étape j − 1. C'est une entrée de ce dictionnaire, donc |Mⱼ| ≤ Lⱼ₋₁.
+
+**Lⱼ ≤ Lⱼ₋₁ + Lⱼ₋₂ pour j ≥ 2.** À l'étape j, on ajoute au plus une entrée, Mⱼ₋₁·Mⱼ. D'après le point précédent, sa longueur vérifie :
+
+|Mⱼ₋₁| + |Mⱼ| ≤ Lⱼ₋₂ + Lⱼ₋₁
+
+Les autres entrées existaient déjà, donc leur longueur est au plus Lⱼ₋₁. On a donc :
+
+Lⱼ ≤ max(Lⱼ₋₁, Lⱼ₋₁ + Lⱼ₋₂) = Lⱼ₋₁ + Lⱼ₋₂
+
+#### (b)
+**Lⱼ ≤ Fⱼ₊₁, par récurrence.**
+- L₀ = 1 = F₁.
+- L₁ = 1 = F₂ : il n'y a pas d'ajout à l'étape 1, donc le dictionnaire ne contient que des octets.
+- Si Lⱼ₋₁ ≤ Fⱼ et Lⱼ₋₂ ≤ Fⱼ₋₁, alors d'après (a), Lⱼ ≤ Fⱼ + Fⱼ₋₁ = Fⱼ₊₁.
+
+**Borne sur k.** Les phrases découpent le texte, donc avec (a) :
+
+n = Σⱼ₌₁ᵏ |Mⱼ| ≤ Σⱼ₌₁ᵏ Lⱼ₋₁ ≤ Σⱼ₌₁ᵏ Fⱼ = Fₖ₊₂ − 1
+
+On utilise ici l'identité classique Σⱼ₌₁ᵏ Fⱼ = Fₖ₊₂ − 1, qui se montre facilement par récurrence.
+
+On a aussi Fₘ ≤ φᵐ⁻¹ pour tout m ≥ 1, par récurrence : F₁ = 1 = φ⁰, F₂ = 1 ≤ φ, et comme φ² = φ + 1,
+
+Fₘ = Fₘ₋₁ + Fₘ₋₂ ≤ φᵐ⁻² + φᵐ⁻³ = φᵐ⁻³(φ + 1) = φᵐ⁻¹
+
+Donc n < Fₖ₊₂ ≤ φᵏ⁺¹, d'où k + 1 > log_φ n, c'est-à-dire :
+
+**k > log_φ n − 1, soit k ≥ log_φ n − O(1).**
+
+#### (c)
+Pour t = aⁿ, toutes les entrées ajoutées ne contiennent que des a. Une entrée aˡ est donc un préfixe du texte restant dès que ℓ est au plus le nombre r de a restants. Ainsi, Mⱼ est **la plus longue entrée de longueur ≤ r**.
+
+**Les phrases ont les longueurs de Fibonacci, tant qu'il reste assez de texte.** On montre par récurrence que |Mⱼ| = Fⱼ et que l'entrée ajoutée à l'étape j est a^Fⱼ₊₁ :
+- M₁ = a et M₂ = a, car le dictionnaire ne contient que a parmi les puissances de a. On ajoute a² = a^F₃.
+- Supposons qu'après l'étape j, la plus longue entrée soit a^Fⱼ₊₁. Si r ≥ Fⱼ₊₁, alors Mⱼ₊₁ = a^Fⱼ₊₁. On ajoute Mⱼ·Mⱼ₊₁ = a^(Fⱼ + Fⱼ₊₁) = a^Fⱼ₊₂. Cette entrée est plus longue que toutes les autres, donc ce n'est jamais un doublon.
+
+Les longueurs des phrases sont donc **1, 1, 2, 3, 5, 8, 13, …**
+
+**La borne est atteinte.** Si n = F₁ + ⋯ + Fₘ = Fₘ₊₂ − 1, le texte est découpé en exactement k = m phrases. Toutes les inégalités de (a) et (b) sont alors des égalités (|Mⱼ| = Lⱼ₋₁ = Fⱼ). Comme Fₘ₊₂ ≈ φᵐ⁺²/√5, on obtient k = m = log_φ n + O(1).
+
+Pour les autres valeurs de n, les premières phrases suivent la même suite de Fibonacci, et seules les dernières, qui découpent le reste r < Fₖ₊₁, sont plus courtes.
+
+**Vérification sur a²⁰.** On a 20 = 1 + 1 + 2 + 3 + 5 + 8 = F₈ − 1. On obtient bien k = 6 phrases, de longueurs 1, 1, 2, 3, 5, 8, comme dans la section 1.6. Et log_φ 20 ≈ 6,2, donc k = 6 est bien de l'ordre de log_φ n.
