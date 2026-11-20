@@ -33,9 +33,43 @@ def ecriture(fichier_chaine, fichier_bin) :
 
 
 # Question 7
+
+# Variables globales pour mémoriser le fichier et l'état du tampon entre deux appels
+fichier_bin = None
+buffer = 0
+nb_bits = 0
+
 # Fonction permettant d'écrire (resp. lire) un entier c sur w bits dans un fichier binaire ouvert, sans écrire ni lire les bits un par un sur le disque (utiliser un tampon)
-def ecrire_code(c, w) :
+def ecrire_code(c, w):
+    global buffer, nb_bits
+    
+    # Ajout des w bits du code dans le tampon
+    buffer = (buffer << w) | c
+    nb_bits += w
+    
+    # Écriture des octets complets dans le fichier
+    while nb_bits >= 8:
+        nb_bits -= 8
+        octet = (buffer >> nb_bits) & 0xFF
+        fichier_bin.write(bytes([octet]))
+        
+    # Nettoyage des bits déjà écrits
+    buffer &= (1 << nb_bits) - 1
 
 
-
-def lire_code(w) :
+def lire_code(w):
+    global buffer, nb_bits
+    
+    # Remplissage du tampon jusqu'à avoir au moins w bits
+    while nb_bits < w:
+        octet = fichier_bin.read(1)
+        if not octet:
+            return None
+        buffer = (buffer << 8) | octet[0]
+        nb_bits += 8
+        
+    # Extraction du code sur w bits et mise à jour du tampon
+    nb_bits -= w
+    code = (buffer >> nb_bits) & ((1 << w) - 1)
+    buffer &= (1 << nb_bits) - 1
+    return code
