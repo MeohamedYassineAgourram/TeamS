@@ -1,36 +1,34 @@
-import outils
+# Vérification de la question 7 sur l'exemple de la section 1.7
+from outils import EcrivainBits, LecteurBits
 
-# Question 7
 
-codes    = [97, 98, 256, 256, 256, 97, 258, 97]
-largeurs = [8,  8,  9,   9,   9,   9,  9,   9]
+def lecture(fichier_bin):
+    with open(fichier_bin, 'rb') as fichier:
+        contenu = fichier.read()
+    bits = "".join(f"{octet:08b}" for octet in contenu)
+    print(bits)
+    return bits
 
-# Test d'écriture
-with open("test_q7.lzmw", "wb") as f:
-    f.write(bytes([24]))  # En-tête b = 24
-    
-    outils.fichier_bin = f
-    outils.buffer = 0
-    outils.nb_bits = 0
-    
-    for c, w in zip(codes, largeurs):
-        outils.ecrire_code(c, w)
-        
-    # Bourrage final : s'il reste des bits dans le tampon, on complète avec des 0 à droite
-    if outils.nb_bits > 0:
-        octet_final = (outils.buffer << (8 - outils.nb_bits)) & 0xFF
-        f.write(bytes([octet_final]))
+
+codes = [97, 98, 256, 256, 256, 97, 258, 97]
+largeurs = [8, 8, 9, 9, 9, 9, 9, 9]
+
+# Écriture des codes
+with open("test_q7.bin", "wb") as f:
+    ecrivain = EcrivainBits(f)
+    for i in range(len(codes)):
+        ecrivain.ecrire_code(codes[i], largeurs[i])
+    ecrivain.fermer()
 
 # Vérification avec la fonction lecture
-outils.lecture("test_q7.lzmw")
+attendu = ("01100001" "01100010" "100000000" "100000000" "100000000"
+           "001100001" "100000010" "001100001" "00")
+bits = lecture("test_q7.bin")
+print("bits identiques à la section 1.7 :", bits == attendu)
 
-# Test de relecture avec la fonction lire_code
-with open("test_q7.lzmw", "rb") as f:
-    b = f.read(1)[0]
-    
-    outils.fichier_bin = f
-    outils.buffer = 0
-    outils.nb_bits = 0
-    
-    codes_lus = [outils.lire_code(w) for w in largeurs]
-    print("b =", b, "| Codes relus :", codes_lus)
+# Relecture avec lire_code
+with open("test_q7.bin", "rb") as f:
+    lecteur = LecteurBits(f)
+    relus = [lecteur.lire_code(w) for w in largeurs]
+print("codes relus :", relus, "->", relus == codes)
+print("bits restants (bourrage) :", lecteur.bits_restants())

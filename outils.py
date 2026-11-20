@@ -33,43 +33,68 @@ def ecriture(fichier_chaine, fichier_bin) :
 
 
 # Question 7
+# Écriture et lecture de codes de w bits dans un fichier binaire ouvert,
+# en passant par un tampon (on n'écrit / lit jamais bit par bit sur le disque).
 
-# Variables globales pour mémoriser le fichier et l'état du tampon entre deux appels
-fichier_bin = None
-buffer = 0
-nb_bits = 0
+import os
 
-# Fonction permettant d'écrire (resp. lire) un entier c sur w bits dans un fichier binaire ouvert, sans écrire ni lire les bits un par un sur le disque (utiliser un tampon)
-def ecrire_code(c, w):
-    global buffer, nb_bits
-    
-    # Ajout des w bits du code dans le tampon
-    buffer = (buffer << w) | c
-    nb_bits += w
-    
-    # Écriture des octets complets dans le fichier
-    while nb_bits >= 8:
-        nb_bits -= 8
-        octet = (buffer >> nb_bits) & 0xFF
-        fichier_bin.write(bytes([octet]))
-        
-    # Nettoyage des bits déjà écrits
-    buffer &= (1 << nb_bits) - 1
+TAILLE_BLOC = 4096  # nombre d'octets écrits ou lus sur le disque en une seule fois
 
 
-def lire_code(w):
-    global buffer, nb_bits
-    
-    # Remplissage du tampon jusqu'à avoir au moins w bits
-    while nb_bits < w:
-        octet = fichier_bin.read(1)
-        if not octet:
-            return None
-        buffer = (buffer << 8) | octet[0]
-        nb_bits += 8
-        
-    # Extraction du code sur w bits et mise à jour du tampon
-    nb_bits -= w
-    code = (buffer >> nb_bits) & ((1 << w) - 1)
-    buffer &= (1 << nb_bits) - 1
-    return code
+class EcrivainBits:
+    def __init__(self, fichier):
+        self.fichier = fichier   # fichier déjà ouvert en mode 'wb'
+        self.tampon = ""         # bits en attente, sous forme de '0' et '1'
+
+    def ecrire_code(self, c, w):
+        # On ajoute le code c, écrit sur exactement w bits, à la fin du tampon
+        self.tampon += format(c, f"0{w}b")
+
+        # Quand le tampon contient assez de bits, on écrit sur le disque
+        # tous les octets complets, et on garde le reste (moins de 8 bits)
+        if len(self.tampon) >= 8 * TAILLE_BLOC:
+            self._vider_octets_complets()
+
+    def _vider_octets_complets(self):
+        nb_complets = len(self.tampon) // 8 * 8       # nombre de bits formant des octets entiers
+        octets = bytearray()
+        for i in range(0, nb_complets, 8):
+            octets.append(int(self.tampon[i:i+8], 2))
+        self.fichier.write(octets)
+        self.tampon = self.tampon[nb_complets:]       # il reste au plus 7 bits
+
+    def fermer(self):
+        # Bourrage : on complète le dernier octet avec des '0'
+        while len(self.tampon) % 8 != 0:
+            self.tampon += "0"
+        self._vider_octets_complets()
+
+
+class LecteurBits:
+    def __init__(self, fichier):
+        self.fichier = fichier   # fichier déjà ouvert en mode 'rb'
+        self.tampon = ""         # bits déjà lus sur le disque mais pas encore utilisés
+        self.pos = 0             # position du prochain bit à lire dans le tampon
+        # nombre de bits qu'il reste à lire dans le fichier (codes + bourrage)
+        taille = os.path.getsize(fichier.name)
+        self.restants = 8 * (taille - fichier.tell())
+
+    def bits_restants(self):
+        return self.restants
+
+    def lire_code(self, w):
+        if w > self.restants:
+            raise EOFError("plus assez de bits dans le fichier")
+
+        # S'il n'y a pas assez de bits dans le tampon, on lit un nouveau bloc
+        # d'octets sur le disque et on le convertit en bits
+        while len(self.tampon) - self.pos < w:
+            bloc = self.fichier.read(TAILLE_BLOC)
+            self.tampon = self.tampon[self.pos:] + "".join(f"{o:08b}" for o in bloc)
+            self.pos = 0
+
+        # On prend les w bits suivants et on les convertit en entier
+        bits = self.tampon[self.pos:self.pos + w]
+        self.pos += w
+        self.restants -= w
+        return int(bits, 2)
